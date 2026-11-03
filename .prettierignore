@@ -1,2 +1,3 @@
-# ignoring the READEME file due to linting sometimes messing up Markdown Tables
-**/*.md
+# Preserve the upstream protobuf contracts byte-for-byte.
+proto/
+package-lock.json

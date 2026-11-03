@@ -1,2 +1,9 @@
 node_modules/
-.ruff_cache/
+.env
+.env.*
+!.env.example
+certs/
+*.pem
+*.key
+coverage/
+.DS_Store

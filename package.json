@@ -1,17 +1,26 @@
 {
-  "name": "webex-samples-github-template",
+  "name": "webex-contact-center-media-forking-sample",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "A basic authenticated receiver for Webex Contact Center Media Forking.",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "format": "prettier --write .",
-    "prepare": "husky"
+    "start": "node --tls-min-v1.3 --env-file-if-exists=.env server.mjs",
+    "demo": "node scripts/demo.mjs",
+    "test": "node --test",
+    "check": "npm test && prettier . --check",
+    "format": "prettier . --write"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "1.14.7",
+    "@grpc/proto-loader": "0.8.1",
+    "jose": "6.2.15"
   },
   "devDependencies": {
-    "eslint": "^8.34.0",
-    "husky": "^9.1.5",
-    "lint-staged": "^15.2.2",
-    "markdownlint": "^0.27.0",
     "prettier": "^3.2.5"
   }
 }

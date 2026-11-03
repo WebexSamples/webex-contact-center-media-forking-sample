@@ -2,21 +2,24 @@ name: Prettier
 
 on: [pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   prettier:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Check formatting
-        run: npx prettier . '!**/*.md' --check
+        run: npx prettier . --check
