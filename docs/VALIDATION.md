@@ -2,6 +2,8 @@
 
 ## Repeatable local validation
 
+Use Node.js 24 and the OpenSSL command-line tool for the TLS startup test.
+
 ```sh
 npm ci
 npm run check

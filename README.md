@@ -88,6 +88,8 @@ consumer's semantics. Capture timestamps alone are not a documented unique packe
 
 ## Validate changes
 
+The TLS startup test also requires the OpenSSL command-line tool on your PATH.
+
 ```sh
 npm run check
 npm run demo
