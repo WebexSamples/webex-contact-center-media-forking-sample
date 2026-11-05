@@ -14,9 +14,10 @@ npm audit
 The demo/tests use synthetic data and in-memory keys. They do not certify the Webex
 tenant integration, media delivery under real load, or a public network path.
 
-## Live Webex Contact Center validation
+## WAV recording validation
 
-Optional WAV recording was added after the live tests below. Local regression tests verify
+Receiver code: `12b53b47ef563185e9ea362a76e596e49bf415c5`.
+Local regression tests verify
 separate leg files, native PCM/MULAW/ALAW headers at both sample rates, byte preservation,
 G.711 padding, format changes, split PCM samples, concurrent/reconnected stream isolation,
 metadata-only and unauthorized streams, cancellation cleanup, private filesystem permissions,
@@ -24,8 +25,25 @@ overload cleanup, and explicit failure on write errors or incomplete PCM samples
 Independent FFmpeg/ffprobe checks decoded all six encoding/rate combinations and verified
 mono channels, duration, and decoded sample counts. The recording-enabled synthetic demo
 also produced separate caller and agent WAV files. All 39 tests, formatting checks, both
-demo modes, and npm audit (zero vulnerabilities) passed. These tests do not establish
-that a live Webex call has been recorded.
+demo modes, and npm audit (zero vulnerabilities) passed. The same 39 tests also passed
+on the non-production AWS host using Node.js 24.
+
+On 2026-11-05, recording was enabled on the existing non-production receiver using a
+private directory on encrypted storage. Two further agent-answered SDK calls produced
+separate caller and agent WAV files. The first call was answered after a re-offer near
+the caller's termination and captured only 0.46 seconds per leg. The longer repeat call
+captured **37.8 seconds / 302400 audio bytes per leg**, mono MULAW at 8000 Hz. The caller
+recording contains non-silent audio; the agent remained silent during the test.
+
+All four WAV files had valid RIFF/fmt/fact/data sizes, decoded successfully on the host,
+and had mode `0600`. No `.partial` files remained. The repeat streams each logged
+`recording_saved` followed by `stream_completed`, without receiver failures or frame
+rejections. Both SDK runs completed. Audio stayed on the private host; intelligibility
+was not assessed by listening. Trusted TLS, public health readiness, anonymous-media
+rejection, persisted service/configuration, and isolation from the existing BYOVA runtime
+were verified after deployment. Retention remains an operator responsibility.
+
+## Earlier live Webex Contact Center validation
 
 Status: **core live path verified on 2026-11-05** in a non-production sandbox.
 Receiver code: `d7314d9d432178537ceb19067bab13d714aa3788`.

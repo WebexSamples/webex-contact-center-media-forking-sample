@@ -140,8 +140,8 @@ They cover token validation, both roles, concurrent calls, declared formats, lif
 overload, cancellation, and error propagation. CI runs the tests, demo, dependency audit,
 and formatting checks. No live tenant is contacted by CI.
 
-Two agent-answered SDK calls verified caller and agent media receipt and clean receiver completion
-in a test organization. See [docs/VALIDATION.md](docs/VALIDATION.md) for the code revision,
+Agent-answered SDK calls verified caller and agent media receipt, clean receiver completion,
+and finalized WAV recording in a test organization. See [docs/VALIDATION.md](docs/VALIDATION.md) for the code revision,
 observed wire behavior, and remaining live coverage.
 
 ## Source and references
