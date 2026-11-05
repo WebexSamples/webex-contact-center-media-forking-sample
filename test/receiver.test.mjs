@@ -107,6 +107,56 @@ test('initial per-leg metadata is accepted without reaching the audio handler', 
   );
 });
 
+test('sparse live packets inherit only validated per-leg metadata and keep absent timestamps', async (t) => {
+  const received = [];
+  const { audio } = await setup(t, {
+    onAudio: async (frame) => received.push(frame),
+  });
+  const [frame] = syntheticFrames(identity.config.orgId);
+  const header = {
+    ...frame,
+    audio: {
+      ...frame.audio,
+      audio_data: Buffer.alloc(0),
+      audio_timestamp: undefined,
+    },
+  };
+  const packet = {
+    ...frame,
+    customer_org_id: '',
+    audio: {
+      ...frame.audio,
+      encoding: 'UNSPECIFIED',
+      sample_rate_hertz: 0,
+      audio_timestamp: undefined,
+    },
+  };
+  await streamFrames(audio, await identity.metadata(), [header, packet]);
+  assert.equal(received[0].customer_org_id, identity.config.orgId);
+  assert.equal(received[0].audio.encoding, frame.audio.encoding);
+  assert.equal(
+    received[0].audio.sample_rate_hertz,
+    frame.audio.sample_rate_hertz,
+  );
+  assert.equal(received[0].audio.audio_timestamp, null);
+  const invalid = [
+    { ...packet, customer_org_id: 'other' },
+    { ...packet, conversation_id: 'other' },
+    { ...packet, audio: { ...packet.audio, role_id: 'other' } },
+    { ...packet, audio: { ...packet.audio, sample_rate_hertz: 44100 } },
+    {
+      ...packet,
+      audio: { ...packet.audio, audio_timestamp: { seconds: '1', nanos: -1 } },
+    },
+  ];
+  for (const bad of invalid) {
+    await assert.rejects(
+      streamFrames(audio, await identity.metadata(), [header, bad]),
+      { code: grpc.status.INVALID_ARGUMENT },
+    );
+  }
+});
+
 test('unauthenticated media is rejected before invoking the audio handler', async (t) => {
   let calls = 0;
   const { audio } = await setup(t, {
