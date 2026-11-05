@@ -175,6 +175,35 @@ test('cross-organization, changed conversation, malformed format, and leg limits
   );
 });
 
+test('frame rejection diagnostics expose field names without payload or identity values', async (t) => {
+  const { audio, events } = await setup(t);
+  const [frame] = syntheticFrames(identity.config.orgId);
+  frame.customer_org_id = 'private-other-org';
+  frame.audio.role_id = '';
+  frame.audio.audio_timestamp = undefined;
+  await assert.rejects(
+    streamFrames(audio, await identity.metadata(), [frame]),
+    {
+      code: grpc.status.INVALID_ARGUMENT,
+    },
+  );
+  const rejected = events.find((event) => event.event === 'frame_rejected');
+  assert.deepEqual(rejected.invalid_fields, [
+    'customer_org_id',
+    'audio.role_id',
+    'audio.audio_timestamp',
+  ]);
+  const logs = JSON.stringify(events);
+  for (const sensitive of [
+    frame.customer_org_id,
+    frame.conversation_id,
+    identity.config.orgId,
+  ]) {
+    assert.ok(!logs.includes(sensitive));
+  }
+  assert.ok(!logs.includes('audio_data'));
+});
+
 test('a slow processor exhausts the bounded queue instead of accepting unlimited audio', async (t) => {
   let aborted = false;
   const { audio } = await setup(t, {
