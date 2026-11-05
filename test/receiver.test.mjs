@@ -70,6 +70,43 @@ test('both media legs preserve bytes and metadata and get one final acknowledgem
   assert.ok(!logs.includes('audio_data'));
 });
 
+test('initial per-leg metadata is accepted without reaching the audio handler', async (t) => {
+  const received = [];
+  const { audio, events } = await setup(t, {
+    onAudio: async (frame) => received.push(frame),
+  });
+  const frames = syntheticFrames(identity.config.orgId);
+  const headers = frames.map((frame) => ({
+    ...frame,
+    audio: {
+      ...frame.audio,
+      audio_data: Buffer.alloc(0),
+      audio_timestamp: undefined,
+    },
+  }));
+  const responses = await streamFrames(audio, await identity.metadata(), [
+    ...headers,
+    ...frames,
+  ]);
+  assert.equal(received.length, 2);
+  assert.equal(
+    events.filter((event) => event.event === 'stream_metadata').length,
+    2,
+  );
+  assert.deepEqual(responses, [
+    { status_message: 'SUCCESS', error_code: 'ERROR_NONE' },
+  ]);
+  await assert.rejects(
+    streamFrames(audio, await identity.metadata(), [headers[0], headers[0]]),
+    { code: grpc.status.INVALID_ARGUMENT },
+  );
+  const badOrg = { ...headers[0], customer_org_id: 'other' };
+  await assert.rejects(
+    streamFrames(audio, await identity.metadata(), [badOrg]),
+    { code: grpc.status.INVALID_ARGUMENT },
+  );
+});
+
 test('unauthenticated media is rejected before invoking the audio handler', async (t) => {
   let calls = 0;
   const { audio } = await setup(t, {
