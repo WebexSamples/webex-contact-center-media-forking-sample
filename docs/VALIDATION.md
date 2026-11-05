@@ -16,8 +16,45 @@ tenant integration, media delivery under real load, or a public network path.
 
 ## Live Webex Contact Center validation
 
-Status: **pending**. A test organization will be supplied after the first PR is ready.
-Do not mark the items below complete based on local tests.
+Status: **core live path verified on 2026-11-05** in a non-production sandbox.
+Receiver code: `d7314d9d432178537ceb19067bab13d714aa3788`.
+
+Two agent-answered calls were placed with the BYOVA gateway's Webex Calling SDK
+E2E caller through the published inbound flow. For each call, the receiver accepted
+separate caller and agent RPCs, processed media, and logged clean completion after
+sending one final acknowledgement per RPC:
+
+| SDK call              | Role   | Frames |  Bytes | Format         |
+| --------------------- | ------ | -----: | -----: | -------------- |
+| First successful call | CALLER |    180 | 230400 | MULAW, 8000 Hz |
+| First successful call | AGENT  |    180 | 230400 | MULAW, 8000 Hz |
+| Repeat call           | CALLER |     79 | 100800 | MULAW, 8000 Hz |
+| Repeat call           | AGENT  |     79 | 100800 | MULAW, 8000 Hz |
+
+No frame rejections or stream failures occurred in that receiver window. The client
+reported completed runs and caller-requested termination. This proves media delivery
+and the receiver completion path; it does not measure intelligibility or prove that
+Webex consumed the final acknowledgement. No audio was stored by the receiver.
+
+Observed wire behavior: metadata-only opening messages carry org/leg identity and format;
+subsequent audio packets omit org/format fields and capture timestamps. The receiver
+retains validated per-leg metadata and leaves omitted timestamps `null`.
+
+The sandbox agent initially had Contact Center disabled and no site/team/desktop profile;
+those were configured before testing. The flow uses **AgentAccepted > Start Media Stream**
+and selects the authorized Service App directly. No Integrations > Features configuration
+was required. Public TLS/HTTP2 routing, Cisco health readiness, and anonymous-media
+rejection were also verified during setup.
+
+Private deployment notes retain the SDK run artifacts, receiver logs, call identifiers,
+and tenant configuration. Tracking: **DXDOC-6482**, under **DXDOC-6470**.
+
+Remaining live coverage: simultaneous conversations, hold/resume, transfer/consult,
+reconnection, expired-token behavior and JWS renewal. Automated local tests cover
+binding rejection and concurrency but do not replace those live checks. Performance
+and production suitability remain unvalidated.
+
+### Checklist for another organization
 
 - Record the PR head commit SHA, test date, and a non-sensitive environment alias.
 - Confirm a publicly trusted certificate, HTTP/2/TLS connectivity, and Cisco health `Check` readiness.

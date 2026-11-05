@@ -47,22 +47,27 @@ through an HTTP/2-capable network path. There is no cloud deployment or tenant c
 
 ## Understand and extend the stream
 
-Webex is the gRPC client; this application is the server. Every request contains:
+Webex is the gRPC client; this application is the server. Webex can open separate RPCs for the caller and agent. Each leg starts with identity/format
+metadata without audio bytes or a capture timestamp. Subsequent packets can omit the org,
+encoding, sample rate, and timestamp. The receiver applies validated opening metadata to
+that leg's audio packets and invokes the audio handler only for non-empty audio.
+
+The handler receives these fields:
 
 | Field                            | Meaning                                                    |
 | -------------------------------- | ---------------------------------------------------------- |
 | `conversation_id`                | Conversation identity; retained across the call            |
-| `customer_org_id`                | Must match the verified JWS organization                   |
+| `customer_org_id`                | Validated against the JWS; retained from opening metadata  |
 | `audio.role` and `audio.role_id` | Source role (`CALLER` or `AGENT`) and individual media leg |
 | `audio.audio_data`               | Raw mono audio bytes, without a WAV header                 |
 | `audio.encoding`                 | `LINEAR16`, `MULAW`, or `ALAW`                             |
-| `audio.sample_rate_hertz`        | 8000 or 16000; read it from each message                   |
-| `audio.audio_timestamp`          | Source capture time, in protobuf seconds and nanoseconds   |
+| `audio.sample_rate_hertz`        | 8000 or 16000; retained from metadata when omitted         |
+| `audio.audio_timestamp`          | Source capture time if supplied; otherwise `null`          |
 
 Add your processing in [`lib/audio.mjs`](lib/audio.mjs). The handler receives the complete
-validated request and an `AbortSignal`. Keep separate downstream sessions for
+validated, normalized audio request and an `AbortSignal`. Keep separate downstream sessions for
 `(customer_org_id, conversation_id, audio.role, audio.role_id)`.
-Read the declared encoding/rate on every frame; frame sizes vary. No decoding or transcoding is performed.
+Read the normalized encoding/rate on every frame; frame sizes vary. Do not invent capture timestamps when Webex omits them. No decoding or transcoding is performed.
 
 Keep CPU-heavy work off the Node.js event loop. For asynchronous work, honor the abort signal,
 set downstream timeouts, and keep processing quick enough to consume live audio.
@@ -76,7 +81,8 @@ The limits in [`lib/receiver.mjs`](lib/receiver.mjs) are development defaults:
 - Up to 128 queued frames and 1 MiB of queued/in-flight audio per RPC.
 - 16 media legs per RPC, a 60-second idle timeout, and a two-hour maximum duration.
 
-Default logs contain a receiver-generated stream ID, role, format, frame/byte counts, and timestamps.
+Default logs contain a receiver-generated stream ID, role, format, frame/byte counts, and supplied timestamps.
+Rejected-frame diagnostics contain field names only.
 They omit raw audio, tokens, organization IDs, conversation IDs, and source role IDs.
 The handler receives the original identifiers so developers can correlate downstream work.
 There is no audio storage or web dashboard.
@@ -101,8 +107,9 @@ They cover token validation, both roles, concurrent calls, declared formats, lif
 overload, cancellation, and error propagation. CI runs the tests, demo, dependency audit,
 and formatting checks. No live tenant is contacted by CI.
 
-Live WxCC validation is pending. Use [docs/VALIDATION.md](docs/VALIDATION.md) to record
-the delivered commit and the eventual test-organization evidence.
+Two agent-answered SDK calls verified caller and agent media receipt and clean receiver completion
+in a test organization. See [docs/VALIDATION.md](docs/VALIDATION.md) for the code revision,
+observed wire behavior, and remaining live coverage.
 
 ## Source and references
 

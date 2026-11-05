@@ -63,7 +63,9 @@ For each media RPC the receiver:
 - Retrieves keys from the configured issuer's `/oauth2/v2/keys/verificationjwk/` endpoint over HTTPS;
   redirects are rejected, fetches time out, and keys are cached.
 - Verifies the signature, expiration, audience, subject, JWT ID, endpoint URL, schema ID, and organization.
-- Checks every request's customer organization against the verified identity and keeps one conversation per RPC.
+- Validates the opening metadata's customer organization against the verified identity and keeps one conversation per RPC.
+  Later packets may omit that organization and the format; the receiver applies only previously validated metadata for the same leg.
+  Explicit mismatches remain errors.
 
 The health service's `Check` RPC is available on the same TLS listener without a JWS.
 This is the Cisco `com.cisco.wcc.ccai.v1.Health` protobuf service, not the standard
@@ -72,12 +74,19 @@ the optional `Watch` RPC is not implemented. Readiness becomes `NOT_SERVING` whi
 
 ## 4. Configure the test flow
 
-1. In Control Hub, go to Contact Center > Integrations > Features.
-2. Create a Media Forking configuration that selects the authorized Service App and registered data source.
-3. In Flow Designer, add the Media Forking activity at the supported point in the agent-call flow.
-4. Select the Media Forking configuration, validate the flow, and resolve validation errors.
-5. Publish it and map a test entry point to that flow, if one is not already mapped.
-6. Follow [the real-call validation checklist](VALIDATION.md).
+1. Enable the test agent for Contact Center and assign a site, desktop profile, and team.
+   Ensure the target queue distributes calls to that team and the agent can answer calls.
+2. In a regular inbound flow, route the main path through **Queue Contact** to that queue.
+3. Open **Event Flows** and add **Start Media Stream** after **AgentAccepted**
+   (called **AgentAnswered** in older flows). This runs after the agent connects.
+4. In **Media streaming settings > Media destination**, select the authorized **Service App** directly.
+   Media Forking does not use a separate configuration under Integrations > Features.
+5. Connect both the success and failure exits to **End Flow** so the event handler finishes.
+6. Validate and publish the flow, then map the test entry point to its published version label.
+7. Make the agent available and follow [the real-call validation checklist](VALIDATION.md).
+
+The activity needs an answered caller-agent conversation. An ordinary main path normally
+runs before agent connection and can fail with `callNotAnswered`.
 
 The media stream begins when the flow executes the activity for the live-agent conversation.
 The sample receives a copy of that audio; it does not participate as a virtual agent.
