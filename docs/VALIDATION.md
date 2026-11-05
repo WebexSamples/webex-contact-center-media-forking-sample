@@ -16,6 +16,17 @@ tenant integration, media delivery under real load, or a public network path.
 
 ## Live Webex Contact Center validation
 
+Optional WAV recording was added after the live tests below. Local regression tests verify
+separate leg files, native PCM/MULAW/ALAW headers at both sample rates, byte preservation,
+G.711 padding, format changes, split PCM samples, concurrent/reconnected stream isolation,
+metadata-only and unauthorized streams, cancellation cleanup, private filesystem permissions,
+overload cleanup, and explicit failure on write errors or incomplete PCM samples.
+Independent FFmpeg/ffprobe checks decoded all six encoding/rate combinations and verified
+mono channels, duration, and decoded sample counts. The recording-enabled synthetic demo
+also produced separate caller and agent WAV files. All 39 tests, formatting checks, both
+demo modes, and npm audit (zero vulnerabilities) passed. These tests do not establish
+that a live Webex call has been recorded.
+
 Status: **core live path verified on 2026-11-05** in a non-production sandbox.
 Receiver code: `d7314d9d432178537ceb19067bab13d714aa3788`.
 

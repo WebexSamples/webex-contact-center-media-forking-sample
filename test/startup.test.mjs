@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -58,6 +58,7 @@ test(
         JWS_AUDIENCE: 'synthetic',
         JWS_SUBJECT: 'synthetic',
         CUSTOMER_ORG_ID: 'synthetic-org',
+        RECORDING_DIR: join(directory, 'recordings'),
         MEDIA_FORKING_SCHEMA_ID: 'synthetic-schema',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -73,6 +74,10 @@ test(
       signal: AbortSignal.timeout(5000),
     });
     assert.match(output.toString(), /receiver_listening/, stderr);
+    assert.equal(
+      (await stat(join(directory, 'recordings'))).mode & 0o777,
+      0o700,
+    );
     const certificate = await readFile(certFile);
     const address = `localhost:${port}`;
     const health = new Health(

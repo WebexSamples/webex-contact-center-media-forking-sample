@@ -5,6 +5,7 @@ import { createVerifier } from './lib/auth.mjs';
 import { readConfig } from './lib/config.mjs';
 import { grpc } from './lib/protocol.mjs';
 import { startReceiver } from './lib/receiver.mjs';
+import { prepareRecordingDirectory } from './lib/recording.mjs';
 
 try {
   if (DEFAULT_MIN_VERSION !== 'TLSv1.3') {
@@ -26,6 +27,9 @@ try {
     throw new Error('TLS certificate does not match the data-source hostname');
   }
   const receiver = await startReceiver({
+    recordingDirectory: config.recordingDirectory
+      ? await prepareRecordingDirectory(config.recordingDirectory)
+      : undefined,
     address: `0.0.0.0:${config.port}`,
     credentials: grpc.ServerCredentials.createSsl(null, [
       { private_key: key, cert_chain: cert },

@@ -99,6 +99,15 @@ test('configuration fails closed and requires HTTPS trust URLs', () => {
     TLS_KEY_FILE: './key.pem',
   };
   assert.equal(readConfig(env).port, 8443);
+  assert.equal(readConfig(env).recordingDirectory, undefined);
+  assert.equal(
+    readConfig({ ...env, RECORDING_DIR: '  ' }).recordingDirectory,
+    undefined,
+  );
+  assert.equal(
+    readConfig({ ...env, RECORDING_DIR: './recordings' }).recordingDirectory,
+    './recordings',
+  );
   for (const badUrl of [
     'http://localhost',
     'https://user:password@identity.example',

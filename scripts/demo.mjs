@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { ConversationAudio, Health, grpc } from '../lib/protocol.mjs';
 import { startReceiver } from '../lib/receiver.mjs';
+import { prepareRecordingDirectory } from '../lib/recording.mjs';
 import {
   syntheticFrames,
   syntheticIdentity,
@@ -13,6 +14,9 @@ const receiver = await startReceiver({
   address: '127.0.0.1:0',
   credentials: grpc.ServerCredentials.createInsecure(),
   verifyToken: identity.verifyToken,
+  recordingDirectory: process.env.RECORDING_DIR?.trim()
+    ? await prepareRecordingDirectory(process.env.RECORDING_DIR.trim())
+    : undefined,
   onAudio: async (frame) => received.push(frame),
 });
 const address = `127.0.0.1:${receiver.port}`;

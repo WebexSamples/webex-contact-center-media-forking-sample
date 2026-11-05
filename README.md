@@ -8,7 +8,7 @@ and the separate `com.cisco.wcc.ccai.v1.Health.Check` RPC. It verifies the signe
 receives raw mono audio, and acknowledges the call after the client finishes sending and
 the audio handler has processed the queued frames.
 
-This sample covers receiving media. It does not transcribe, play, record, or send audio back into a call.
+This sample covers receiving media, with optional WAV recording. It does not transcribe, play, or send audio back into a call.
 Although the RPC is bidirectional, the response is a final processing acknowledgement, not a voice response.
 
 ## Try it without a Webex organization
@@ -85,12 +85,45 @@ Default logs contain a receiver-generated stream ID, role, format, frame/byte co
 Rejected-frame diagnostics contain field names only.
 They omit raw audio, tokens, organization IDs, conversation IDs, and source role IDs.
 The handler receives the original identifiers so developers can correlate downstream work.
-There is no audio storage or web dashboard.
+Recording is disabled unless `RECORDING_DIR` is set. There is no web dashboard.
 
 This starter accepts one configured customer organization and data-source binding per process.
-Re-established streams are separate RPCs; it does not persist or deduplicate media.
+Re-established streams are separate RPCs; it does not deduplicate media.
 Before adding external writes, design idempotency around the conversation/leg identity and your
 consumer's semantics. Capture timestamps alone are not a documented unique packet sequence.
+
+## Record WAV audio
+
+Set `RECORDING_DIR=./recordings` in `.env` and run `npm start` to save incoming media.
+To try recording synthetic caller and agent silence without a Webex organization:
+
+```sh
+RECORDING_DIR=./recordings npm run demo
+```
+
+Like the BYOVA Python recorder, this wraps the received bytes in a WAV container without
+transcoding: mono LINEAR16 (PCM), MULAW, or ALAW at the declared 8000/16000 Hz rate.
+Use a player supporting the recorded codec, such as VLC or ffplay. Each RPC/participant
+leg gets a separate file, named `<stream-id>_<leg>_<CALLER|AGENT>_<segment>.wav`.
+The generated stream ID matches receiver logs; source organization/conversation/role IDs
+are not included in filenames or logs. Reconnects start new files. A format change starts
+a new segment, with a maximum of 32 segments per leg. Files contain received audio in
+arrival order; they do not mix participants, insert silence for gaps, or align timestamps.
+
+The writer streams to disk and renames `.wav.partial` to `.wav` only after writing the
+final header, syncing, and closing. `recording_saved` logs identify finalized files and
+their format/byte count. A success acknowledgement waits for recording finalization.
+Cancellation, timeout, or handler failure finalizes audio already written; the WAV may
+cover only part of a call, so also check `stream_completed`/`stream_failed` logs. A process
+crash or disk error can leave `.partial` files. Incomplete LINEAR16 samples and RIFF size
+overflow fail explicitly. There is no recovery or automatic deletion of these artifacts.
+
+The directory is created with mode `0700`; an existing directory must also be private.
+Files use mode `0600`. Keep the directory outside any web-served path and provide a
+writable persistent volume if running in a container or restricted service. Recordings
+are sensitive call data: use an appropriately encrypted disk, restrict access, and set
+your own retention/cleanup policy. Monitor disk space; disk exhaustion fails the stream.
+WAV files and partial recordings are excluded from Git. Recording stays off by default.
 
 ## Validate changes
 

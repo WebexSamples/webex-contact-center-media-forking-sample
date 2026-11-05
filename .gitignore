@@ -6,4 +6,7 @@ certs/
 *.pem
 *.key
 coverage/
+recordings/
+*.wav
+*.partial
 .DS_Store

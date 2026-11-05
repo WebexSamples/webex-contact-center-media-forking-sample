@@ -5,6 +5,11 @@ a Service App and an administrator who can edit, validate, and publish the test 
 
 ## 1. Prepare a reachable receiver
 
+For optional WAV capture, set `RECORDING_DIR` in `.env` to a private writable directory.
+See [Record WAV audio](../README.md#record-wav-audio) for file naming, format, and retention.
+For a systemd service using `ProtectSystem=strict`, provision the directory for the service
+user and allow that path with `ReadWritePaths=`; keep application code and configuration read-only.
+
 1. Install Node.js 24 and run `npm ci`.
 2. Obtain a currently valid, publicly issued TLS certificate and full chain for your receiver hostname.
    Store the certificate and private key outside Git; the local `certs/` directory is ignored.
