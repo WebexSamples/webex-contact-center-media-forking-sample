@@ -41,6 +41,10 @@ request schema and your tenant's supported values:
    required payload/status. The guide currently limits the lifetime to 1440 minutes.
    OAuth access-token refresh and data-source JWS renewal are separate lifecycle operations.
 
+Use the JWS's signed `exp` as the validation authority and renew with a safety margin.
+In the live lifecycle test, the REST `tokenExpiryTime` display was up to one second later
+than signed `exp`; do not schedule renewal at the last displayed second.
+
 The sample deliberately does not hold OAuth credentials or automate app authorization,
 data-source creation, or token renewal. Those are administrative setup steps; the receiver
 validates the JWS that Webex presents at media connection time.

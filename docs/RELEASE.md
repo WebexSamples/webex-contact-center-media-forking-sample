@@ -20,9 +20,10 @@ Before creating the public `v0.1.0` release:
   A pattern scan is supporting evidence and does not replace manual review.
 - Read the [live evidence](VALIDATION.md) against the candidate diff. A test passing
   locally or a healthy public endpoint does not establish live media delivery.
-- Complete the live expired-JWS rejection and data-source renewal checks in the test
-  organization. OAuth refresh and data-source JWS renewal are separate operations;
-  neither is implemented by the receiver. Do not publish credentials in the evidence.
+- Live expired-JWS rejection and data-source renewal were verified on 2026-11-06; see
+  [the lifecycle evidence](VALIDATION.md#live-jws-expiry-and-renewal-validation).
+  Repeat these checks for another deployment. OAuth refresh and data-source JWS renewal
+  are separate operations; neither is implemented by the receiver. Keep credentials private.
 - Verify the README, setup instructions, protobuf provenance, license, support boundary,
   and public documentation links. Guide corrections remain tracked separately.
 - Obtain the owner's public-release approval, then change visibility and publish a

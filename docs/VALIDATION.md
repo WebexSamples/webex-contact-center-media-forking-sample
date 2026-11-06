@@ -30,9 +30,43 @@ with one-second duration and the expected decoded sample counts. A bounded patte
 private test configuration. Manual source/privacy review supplements this limited scan;
 no full secret-scanning product or production security certification is claimed.
 
-The live evidence below remains tied to its recorded receiver revisions. This preparation
-does not claim new live expired-token/renewal, transfer/reconnect, capacity, or agent-speech
-validation. See [release readiness](RELEASE.md) for the remaining publication gates.
+The live evidence below remains tied to its recorded receiver revisions. The subsequent
+credential-lifecycle check is recorded below; transfer/reconnect, capacity, and agent-speech
+validation remain unclaimed. See [release readiness](RELEASE.md) for publication gates.
+
+## Live JWS expiry and renewal validation
+
+Status: **passed on 2026-11-06** against the registered non-production AWS receiver.
+Deployed receiver: `12b53b47ef563185e9ea362a76e596e49bf415c5`. Its authentication,
+receiver, and protocol source hashes match release candidate
+`acb692375788fafac8580042c779d9f7f20544a0`.
+
+A private operator harness used the authorized Service App's Data Sources API access to
+issue a one-minute JWS in the test organization, then connected to the actual public TLS
+receiver using that Cisco-signed credential. The first two probes used the identical token.
+No receiver clock, trust binding, or expiry-validation setting was changed.
+
+| Probe                                        | UTC time            | Receiver result             |
+| -------------------------------------------- | ------------------- | --------------------------- |
+| Valid short-lived JWS                        | 2026-11-06 15:03:13 | One final `SUCCESS`         |
+| Same JWS after its signed expiry at 15:04:10 | 2026-11-06 15:04:13 | `UNAUTHENTICATED` (gRPC 16) |
+| Renewed JWS with a fresh nonce               | 2026-11-06 15:04:15 | One final `SUCCESS`         |
+
+Independent signature/claim validation also identified the expired token as
+`ERR_JWT_EXPIRED`. The registration was restored to its original **1440-minute** lifetime
+and read back as `active`; the signed renewed expiry was **2026-11-07 15:04:14 UTC**.
+Organization, URL, schema, audience, and subject bindings were verified after renewal.
+
+These authenticated probes used synthetic 20 ms LINEAR16 caller/agent frames at 8000 Hz.
+Receiver logs confirmed two completed authenticated RPCs, one rejected expired RPC, and
+four finalized synthetic WAVs of 320 audio bytes each. This was a live credential/API/gRPC
+test, not a new agent-answered phone call. The existing BYOVA runtime retained its PID and
+start timestamp. The harness kept OAuth/JWS values in memory/stdin; only sanitized evidence
+was retained, outside the sample repository.
+
+The initial REST `tokenExpiryTime` display was one second later than signed JWT `exp`.
+The probes used signed `exp` for expiry decisions. Renewal should happen with a safety
+margin, rather than at the last displayed second. The receiver does not automate renewal.
 
 ## WAV recording validation
 
@@ -99,7 +133,8 @@ Private deployment notes retain the SDK run artifacts, receiver logs, call ident
 and tenant configuration. Tracking: **DXDOC-6482**, under **DXDOC-6470**.
 
 Remaining live coverage: simultaneous conversations, hold/resume, transfer/consult,
-reconnection, expired-token behavior and JWS renewal. Automated local tests cover
+and reconnection. Expired-JWS rejection and renewal were verified separately above.
+Automated local tests cover
 binding rejection and concurrency but do not replace those live checks. Performance
 and production suitability remain unvalidated.
 
