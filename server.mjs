@@ -41,6 +41,7 @@ try {
       event: 'receiver_listening',
       port: receiver.port,
       transport: 'TLS',
+      recording_enabled: Boolean(config.recordingDirectory),
     }),
   );
   const shutdown = async () => {

@@ -16,12 +16,14 @@ Although the RPC is bidirectional, the response is a final processing acknowledg
 Install Node.js 24 (see `.nvmrc`), then:
 
 ```sh
+git clone https://github.com/WebexSamples/webex-contact-center-media-forking-sample.git
+cd webex-contact-center-media-forking-sample
 npm ci
 npm run demo
 ```
 
 The demo starts a receiver and test client on an OS-assigned loopback port. It creates temporary
-signing keys in memory, checks readiness, streams synthetic caller and agent silence, verifies
+signing keys in memory, checks readiness, streams distinct one-second synthetic caller and agent tones, verifies
 one final `SUCCESS`, and confirms that an unauthenticated stream is rejected.
 No customer audio, credentials, or Webex organization is used.
 
@@ -95,13 +97,13 @@ consumer's semantics. Capture timestamps alone are not a documented unique packe
 ## Record WAV audio
 
 Set `RECORDING_DIR=./recordings` in `.env` and run `npm start` to save incoming media.
-To try recording synthetic caller and agent silence without a Webex organization:
+To try recording synthetic caller and agent tones without a Webex organization:
 
 ```sh
 RECORDING_DIR=./recordings npm run demo
 ```
 
-Like the BYOVA Python recorder, this wraps the received bytes in a WAV container without
+The recorder wraps the received bytes in a WAV container without
 transcoding: mono LINEAR16 (PCM), MULAW, or ALAW at the declared 8000/16000 Hz rate.
 Use a player supporting the recorded codec, such as VLC or ffplay. Each RPC/participant
 leg gets a separate file, named `<stream-id>_<leg>_<CALLER|AGENT>_<segment>.wav`.
@@ -118,7 +120,8 @@ cover only part of a call, so also check `stream_completed`/`stream_failed` logs
 crash or disk error can leave `.partial` files. Incomplete LINEAR16 samples and RIFF size
 overflow fail explicitly. There is no recovery or automatic deletion of these artifacts.
 
-The directory is created with mode `0700`; an existing directory must also be private.
+The directory is created with mode `0700`; an existing directory must also be private,
+writable, and searchable by the receiver user. Startup fails if these access checks fail.
 Files use mode `0600`. Keep the directory outside any web-served path and provide a
 writable persistent volume if running in a container or restricted service. Recordings
 are sensitive call data: use an appropriately encrypted disk, restrict access, and set
@@ -151,11 +154,10 @@ The three protobuf files under `proto/` are copied unchanged from the
 commit `0db3a6a56195f5708cc47f3d7c13f0f3dafa716d`. This receiver is a new implementation;
 it does not reuse the reference's Java authentication code.
 
-- [Media Forking overview](https://developer.webex.com/webex-contact-center/docs/media-forking-overview)
-- [Media Forking guide](https://developer.webex.com/webex-contact-center/docs/media-forking-guide)
-- [Data Sources API](https://developer.webex.com/webex-contact-center/docs/api/v1/data-sources)
+- [Media Forking overview](https://developer.webex.com/mcp/docs/media-forking-overview)
+- [Media Forking guide](https://developer.webex.com/mcp/docs/media-forking-guide)
+- [Data Sources API](https://developer.webex.com/docs/api/v1/data-sources)
 - [Service Apps](https://developer.webex.com/admin/docs/service-apps)
-- [Tracking: DXDOC-6470](https://jira-eng-gpk2.cisco.com/jira/browse/DXDOC-6470)
 
 ## Contributing and license
 
@@ -166,3 +168,5 @@ than placing credentials or customer data in an issue.
 
 This repository uses the WebexSamples template and the [Cisco Sample Code License](LICENSE).
 It is sample code and has not been certified for production capacity or reliability.
+Support is through repository issues, using sanitized reproductions; this sample is not supported by Cisco TAC.
+See [release readiness](docs/RELEASE.md) for the validation boundary and publication checklist.

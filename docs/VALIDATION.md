@@ -14,6 +14,26 @@ npm audit
 The demo/tests use synthetic data and in-memory keys. They do not certify the Webex
 tenant integration, media delivery under real load, or a public network path.
 
+## Release preparation on 2026-11-06
+
+The release preparation adds a regression for a private but unwritable recording directory:
+startup now requires mode `0700` and effective write/search access. A forced-shutdown test
+verifies active processing is aborted and accepted audio is finalized before shutdown returns.
+A format-change test verifies the 32-segment limit fails explicitly without reporting success.
+The synthetic demo now sends distinct one-second caller/agent tones; its recording mode
+checks finalized files and byte preservation, and runs in CI alongside the default demo.
+
+All 42 tests, formatting, both demo modes, and npm audit (zero vulnerabilities) passed locally.
+Independent FFmpeg decoding verified both demo WAVs as non-silent, mono LINEAR16 at 8000 Hz,
+with one-second duration and the expected decoded sample counts. A bounded pattern scan of
+10 existing commits / 67 unique file blobs found no matching credential material or known
+private test configuration. Manual source/privacy review supplements this limited scan;
+no full secret-scanning product or production security certification is claimed.
+
+The live evidence below remains tied to its recorded receiver revisions. This preparation
+does not claim new live expired-token/renewal, transfer/reconnect, capacity, or agent-speech
+validation. See [release readiness](RELEASE.md) for the remaining publication gates.
+
 ## WAV recording validation
 
 Receiver code: `12b53b47ef563185e9ea362a76e596e49bf415c5`.

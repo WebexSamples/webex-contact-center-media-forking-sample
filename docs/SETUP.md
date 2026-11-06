@@ -24,8 +24,8 @@ user and allow that path with `ReadWritePaths=`; keep application code and confi
 
 ## 2. Authorize a Service App and register its data source
 
-Follow the current [Media Forking guide](https://developer.webex.com/webex-contact-center/docs/media-forking-guide)
-and [Data Sources API](https://developer.webex.com/webex-contact-center/docs/api/v1/data-sources) for the exact
+Follow the current [Media Forking guide](https://developer.webex.com/mcp/docs/media-forking-guide)
+and [Data Sources API](https://developer.webex.com/docs/api/v1/data-sources) for the exact
 request schema and your tenant's supported values:
 
 1. Create a Service App with the Media Forking schema and a data exchange domain owned by the app owner.
@@ -58,9 +58,12 @@ Copy `.env.example` to `.env` and set:
 | `DATASOURCE_URL`                | Exact registered endpoint URL, including the port/path/trailing slash if present                                                   |
 | `TLS_CERT_FILE`, `TLS_KEY_FILE` | Local full-chain certificate and matching private-key paths                                                                        |
 | `PORT`                          | Local TLS listener port; defaults to 8443                                                                                          |
+| `RECORDING_DIR`                 | Optional private writable directory for WAV files; leave unset to disable recording                                                |
 
 Run `npm start`. Startup requires all trust bindings and a valid certificate for the
 registered hostname. It has no authentication-disable setting.
+The `receiver_listening` log includes `recording_enabled` so you can confirm whether WAV
+capture is active without logging its private filesystem path.
 
 For each media RPC the receiver:
 
@@ -98,16 +101,20 @@ The sample receives a copy of that audio; it does not participate as a virtual a
 
 ## Troubleshooting
 
-| Symptom                       | Check                                                                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| No connection                 | Public DNS/port reachability, HTTP/2 and TLS 1.3 support, certificate chain, data-source health, and activity execution        |
-| `UNAUTHENTICATED` (16)        | Expired JWS, exact trusted issuer/key ID, audience/subject, registered URL/schema, organization binding, and JWKS reachability |
-| `INVALID_ARGUMENT` (3)        | Missing or inconsistent conversation/organization/leg identifiers, unknown encoding/rate, or invalid capture timestamp         |
-| `RESOURCE_EXHAUSTED` (8)      | Concurrent-stream, frame/message size, leg, or processor queue limits; confirm downstream processing keeps up                  |
-| `DEADLINE_EXCEEDED` (4)       | 60-second inactivity timeout or two-hour stream limit                                                                          |
-| `INTERNAL` (13)               | Failure in your audio handler; investigate your processor without logging audio or tokens                                      |
-| Health method not found       | Use the Cisco health proto in `proto/`, not the standard gRPC health schema                                                    |
-| Stream closes during shutdown | SIGINT/SIGTERM allows five seconds to finish, then cancels remaining streams                                                   |
+| Symptom                       | Check                                                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| No connection                 | Public DNS/port reachability, HTTP/2 and TLS 1.3 support, certificate chain, data-source health, and activity execution                                      |
+| `UNAUTHENTICATED` (16)        | Expired JWS, exact trusted issuer/key ID, audience/subject, registered URL/schema, organization binding, and JWKS reachability                               |
+| `INVALID_ARGUMENT` (3)        | Missing or inconsistent conversation/organization/leg identifiers, unknown encoding/rate, or invalid capture timestamp                                       |
+| `RESOURCE_EXHAUSTED` (8)      | Concurrent-stream, frame/message size, leg, or processor queue limits; confirm downstream processing keeps up                                                |
+| `DEADLINE_EXCEEDED` (4)       | 60-second inactivity timeout or two-hour stream limit                                                                                                        |
+| `INTERNAL` (13)               | Audio handler or recording failure; check directory access, free disk space, incomplete PCM samples, and segment/RIFF limits without logging audio or tokens |
+| Health method not found       | Use the Cisco health proto in `proto/`, not the standard gRPC health schema                                                                                  |
+| Stream closes during shutdown | SIGINT/SIGTERM allows five seconds to finish, then cancels remaining streams                                                                                 |
 
 An authentication failure is intentionally generic. Compare configured values privately
 rather than copying tokens into logs or tickets. Missing audio cannot be recovered from this receiver.
+
+If startup reports a recording-directory error, check ownership, private permissions (`0700`),
+and filesystem/service write access using the same account that runs the receiver. An encrypted
+disk and a manual retention policy are the operator's responsibility.

@@ -293,3 +293,64 @@ test('recording directory must be private and recording remains disabled by defa
     /private directory/,
   );
 });
+
+test('recording readiness rejects a private but unwritable directory', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'forking-readonly-'));
+  t.after(async () => {
+    await chmod(directory, 0o700);
+    await rm(directory, { recursive: true, force: true });
+  });
+  await chmod(directory, 0o500);
+  await assert.rejects(prepareRecordingDirectory(directory), /mode 0700/);
+});
+
+test(
+  'forced shutdown cancels an active processor and finalizes its WAV before returning',
+  { timeout: 10_000 },
+  async (t) => {
+    const entered = Promise.withResolvers();
+    let aborted = false;
+    const { directory, audio, receiver, events } = await setup(t, {
+      onAudio: async (_frame, { signal }) => {
+        entered.resolve();
+        await once(signal, 'abort');
+        aborted = true;
+      },
+    });
+    const call = audio.streamConversationAudio(await identity.metadata());
+    call.on('error', () => {});
+    const [frame] = syntheticFrames(identity.config.orgId);
+    call.write(frame);
+    await entered.promise;
+    await receiver.close();
+    assert.equal(aborted, true);
+    const files = await readdir(directory);
+    assert.equal(files.length, 1);
+    await readWav(
+      directory,
+      files[0],
+      'LINEAR16',
+      8000,
+      frame.audio.audio_data,
+    );
+    assert.ok(!events.some((event) => event.event === 'stream_completed'));
+  },
+);
+
+test('repeated format changes stop at the recording segment limit', async (t) => {
+  const { directory, audio, events } = await setup(t);
+  const [frame] = syntheticFrames(identity.config.orgId);
+  const frames = Array.from({ length: 33 }, (_, index) => ({
+    ...frame,
+    audio: {
+      ...frame.audio,
+      encoding: index % 2 ? 'ALAW' : 'MULAW',
+      audio_data: Buffer.from([0xff]),
+    },
+  }));
+  await assert.rejects(streamFrames(audio, await identity.metadata(), frames), {
+    code: grpc.status.INTERNAL,
+  });
+  assert.equal((await readdir(directory)).length, 32);
+  assert.ok(!events.some((event) => event.event === 'stream_completed'));
+});
